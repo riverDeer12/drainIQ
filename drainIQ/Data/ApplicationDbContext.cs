@@ -72,6 +72,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.ToTable("alarm_rules", tb =>
                 tb.HasCheckConstraint("CK_alarm_rules_comparator", "comparator IN ('<', '<=', '>', '>=', '=')"));
 
+            entity.HasKey(r => r.RuleId);
             entity.Property(r => r.RuleId).HasColumnName("rule_id");
             entity.Property(r => r.DeviceId).HasColumnName("device_id");
             entity.Property(r => r.AlarmName).HasColumnName("alarm_name").HasMaxLength(255).IsRequired();
@@ -95,6 +96,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.ToTable("alarm_instances", tb =>
                 tb.HasCheckConstraint("CK_alarm_instances_status", "status IN ('triggered', 'acknowledged', 'resolved')"));
 
+            entity.HasKey(a => a.AlarmId);
             entity.Property(a => a.AlarmId).HasColumnName("alarm_id");
             entity.Property(a => a.RuleId).HasColumnName("rule_id");
             entity.Property(a => a.MeasurementId).HasColumnName("measurement_id");

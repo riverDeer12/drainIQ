@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using drainIQ.Data;
 using drainIQ.Endpoints;
 using drainIQ.Services;
@@ -12,6 +13,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Endpoints return EF Core entities directly; their navigation properties
+// form cycles (e.g. Measurement -> AlarmInstance -> AlarmRule -> AlarmInstance),
+// so cut cycles instead of endlessly re-serializing the same rows.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -37,6 +44,9 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
+        // Keep short claim names (sub, email, ...) as issued by TokenService instead of
+        // letting the handler remap them to long legacy XML-SOAP claim URIs.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

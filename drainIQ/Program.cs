@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using drainIQ.Data;
+using drainIQ.Data.Seed;
 using drainIQ.Endpoints;
 using drainIQ.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -79,6 +80,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+    await DbSeeder.SeedAsync(app.Services);
 }
 
 app.UseHttpsRedirection();

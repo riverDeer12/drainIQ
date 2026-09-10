@@ -4,10 +4,20 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>7d2fa451-2793-4ecb-a3ff-7388b51a2adf</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2"/>
+        <!-- Pinned directly: Microsoft.AspNetCore.OpenApi 10.0.2 transitively pulls Microsoft.OpenApi 2.0.0, which has a known high-severity vulnerability (GHSA-v5pm-xwqc-g5wc, fixed in 2.7.5+). -->
+        <PackageReference Include="Microsoft.OpenApi" Version="2.12.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.2"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2"/>
     </ItemGroup>
 
 </Project>

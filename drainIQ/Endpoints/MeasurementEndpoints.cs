@@ -1,0 +1,45 @@
+using drainIQ.Data;
+using drainIQ.Models;
+using drainIQ.Services;
+using Microsoft.EntityFrameworkCore;
+
+namespace drainIQ.Endpoints;
+
+public static class MeasurementEndpoints
+{
+    public static void MapMeasurementEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/measurements").WithTags("Measurements");
+
+        // Core ingestion endpoint: a device posts a reading, we store it,
+        // then immediately check it against that device's active alarm rules.
+        group.MapPost("/", async (CreateMeasurementRequest request, ApplicationDbContext db, AlarmEvaluationService alarmEvaluation) =>
+        {
+            var deviceExists = await db.Devices.AnyAsync(d => d.DeviceId == request.DeviceId && d.IsActive);
+            if (!deviceExists)
+            {
+                return Results.NotFound($"Active device {request.DeviceId} not found.");
+            }
+
+            var measurement = new Measurement
+            {
+                DeviceId = request.DeviceId,
+                SentAt = request.SentAt ?? DateTimeOffset.UtcNow,
+                WaterLevelFromTopCm = request.WaterLevelFromTopCm
+            };
+
+            db.Measurements.Add(measurement);
+            await db.SaveChangesAsync();
+
+            var triggeredAlarms = await alarmEvaluation.EvaluateAsync(measurement);
+
+            return Results.Created($"/api/measurements/{measurement.MeasurementId}", new
+            {
+                measurement,
+                triggeredAlarms
+            });
+        });
+    }
+}
+
+public record CreateMeasurementRequest(int DeviceId, decimal WaterLevelFromTopCm, DateTimeOffset? SentAt);

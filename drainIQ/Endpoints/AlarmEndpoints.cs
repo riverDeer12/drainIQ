@@ -8,7 +8,7 @@ public static class AlarmEndpoints
 {
     public static void MapAlarmEndpoints(this WebApplication app)
     {
-        var rules = app.MapGroup("/api/alarm-rules").WithTags("AlarmRules");
+        var rules = app.MapGroup("/api/alarm-rules").WithTags("AlarmRules").RequireAuthorization();
 
         rules.MapGet("/", async (int? deviceId, ApplicationDbContext db) =>
         {
@@ -49,7 +49,7 @@ public static class AlarmEndpoints
             return Results.Created($"/api/alarm-rules/{rule.RuleId}", rule);
         });
 
-        var instances = app.MapGroup("/api/alarms").WithTags("Alarms");
+        var instances = app.MapGroup("/api/alarms").WithTags("Alarms").RequireAuthorization();
 
         instances.MapGet("/", async (int? deviceId, string? status, ApplicationDbContext db) =>
         {

@@ -11,6 +11,9 @@ public static class MeasurementEndpoints
     {
         var group = app.MapGroup("/api/measurements").WithTags("Measurements");
 
+        // Deliberately NOT behind .RequireAuthorization(): this is a device-to-server
+        // ingestion endpoint, and field devices don't hold a user JWT. Needs its own
+        // auth (e.g. a per-device API key) before going to production.
         // Core ingestion endpoint: a device posts a reading, we store it,
         // then immediately check it against that device's active alarm rules.
         group.MapPost("/", async (CreateMeasurementRequest request, ApplicationDbContext db, AlarmEvaluationService alarmEvaluation) =>

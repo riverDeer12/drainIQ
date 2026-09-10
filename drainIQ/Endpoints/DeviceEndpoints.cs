@@ -8,7 +8,7 @@ public static class DeviceEndpoints
 {
     public static void MapDeviceEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/devices").WithTags("Devices");
+        var group = app.MapGroup("/api/devices").WithTags("Devices").RequireAuthorization();
 
         group.MapGet("/", async (ApplicationDbContext db) =>
             await db.Devices.Where(d => d.IsActive).OrderBy(d => d.DeviceName).ToListAsync());

@@ -1,6 +1,74 @@
 @drainIQ_HostAddress = http://localhost:5199
 
-GET {{drainIQ_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register a new user
+# @name register
+POST {{drainIQ_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@drainiq.hr",
+  "password": "Test123!@#"
+}
+
+### Log in and capture the token for the requests below
+# @name login
+POST {{drainIQ_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@drainiq.hr",
+  "password": "Test123!@#"
+}
+
+### Who am I (protected)
+GET {{drainIQ_HostAddress}}/api/auth/me
+Authorization: Bearer {{login.response.body.$.token}}
+
+### List devices (protected)
+GET {{drainIQ_HostAddress}}/api/devices
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Create a device (protected)
+# @name createDevice
+POST {{drainIQ_HostAddress}}/api/devices
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "deviceName": "Manhole - Korzo 1",
+  "lat": 45.3271,
+  "long": 14.4422,
+  "description": "Test sensor"
+}
+
+### Send a measurement (device ingestion endpoint - no user auth, see code comment)
+POST {{drainIQ_HostAddress}}/api/measurements
+Content-Type: application/json
+
+{
+  "deviceId": 1,
+  "waterLevelFromTopCm": 42.5
+}
+
+### Get measurements for a device (protected)
+GET {{drainIQ_HostAddress}}/api/devices/1/measurements
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Create an alarm rule (protected)
+POST {{drainIQ_HostAddress}}/api/alarm-rules
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "deviceId": 1,
+  "alarmName": "High water level",
+  "alarmType": "water_level",
+  "thresholdValue": 10.0,
+  "comparator": "<="
+}
+
+### List alarms (protected)
+GET {{drainIQ_HostAddress}}/api/alarms
+Authorization: Bearer {{login.response.body.$.token}}
 
 ###

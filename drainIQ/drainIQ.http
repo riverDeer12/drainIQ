@@ -2,7 +2,7 @@
 
 ### Register a new user
 # @name register
-POST {{drainIQ_HostAddress}}/api/auth/register
+POST {{drainIQ_HostAddress}}/auth/register
 Content-Type: application/json
 
 {
@@ -12,7 +12,7 @@ Content-Type: application/json
 
 ### Log in and capture the token for the requests below
 # @name login
-POST {{drainIQ_HostAddress}}/api/auth/login
+POST {{drainIQ_HostAddress}}/auth/login
 Content-Type: application/json
 
 {
@@ -21,16 +21,16 @@ Content-Type: application/json
 }
 
 ### Who am I (protected)
-GET {{drainIQ_HostAddress}}/api/auth/me
+GET {{drainIQ_HostAddress}}/auth/me
 Authorization: Bearer {{login.response.body.$.token}}
 
 ### List devices (protected)
-GET {{drainIQ_HostAddress}}/api/devices
+GET {{drainIQ_HostAddress}}/devices
 Authorization: Bearer {{login.response.body.$.token}}
 
 ### Create a device (protected)
 # @name createDevice
-POST {{drainIQ_HostAddress}}/api/devices
+POST {{drainIQ_HostAddress}}/devices
 Authorization: Bearer {{login.response.body.$.token}}
 Content-Type: application/json
 
@@ -42,7 +42,7 @@ Content-Type: application/json
 }
 
 ### Send a measurement (device ingestion endpoint - no user auth, see code comment)
-POST {{drainIQ_HostAddress}}/api/measurements
+POST {{drainIQ_HostAddress}}/measurements
 Content-Type: application/json
 
 {
@@ -51,11 +51,11 @@ Content-Type: application/json
 }
 
 ### Get measurements for a device (protected)
-GET {{drainIQ_HostAddress}}/api/devices/1/measurements
+GET {{drainIQ_HostAddress}}/devices/1/measurements
 Authorization: Bearer {{login.response.body.$.token}}
 
 ### Create an alarm rule (protected)
-POST {{drainIQ_HostAddress}}/api/alarm-rules
+POST {{drainIQ_HostAddress}}/alarm-rules
 Authorization: Bearer {{login.response.body.$.token}}
 Content-Type: application/json
 
@@ -68,7 +68,7 @@ Content-Type: application/json
 }
 
 ### List alarms (protected)
-GET {{drainIQ_HostAddress}}/api/alarms
+GET {{drainIQ_HostAddress}}/alarms
 Authorization: Bearer {{login.response.body.$.token}}
 
 ###

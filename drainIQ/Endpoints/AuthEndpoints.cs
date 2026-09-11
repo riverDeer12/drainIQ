@@ -10,7 +10,7 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Auth");
+        var group = app.MapGroup("/auth").WithTags("Auth");
 
         group.MapPost("/register", async (RegisterRequest request, UserManager<ApplicationUser> userManager, TokenService tokenService) =>
         {
@@ -33,7 +33,7 @@ public static class AuthEndpoints
             }
 
             var token = await tokenService.GenerateTokenAsync(user);
-            return Results.Created($"/api/auth/me", new AuthResponse(token, user.Id, user.Email!));
+            return Results.Created($"/auth/me", new AuthResponse(token, user.Id, user.Email!));
         });
 
         group.MapPost("/login", async (LoginRequest request, UserManager<ApplicationUser> userManager, TokenService tokenService) =>

@@ -9,7 +9,7 @@ public static class MeasurementEndpoints
 {
     public static void MapMeasurementEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/measurements").WithTags("Measurements");
+        var group = app.MapGroup("/measurements").WithTags("Measurements");
 
         // Deliberately NOT behind .RequireAuthorization(): this is a device-to-server
         // ingestion endpoint, and field devices don't hold a user JWT. Needs its own
@@ -36,7 +36,7 @@ public static class MeasurementEndpoints
 
             var triggeredAlarms = await alarmEvaluation.EvaluateAsync(measurement);
 
-            return Results.Created($"/api/measurements/{measurement.MeasurementId}", new
+            return Results.Created($"/measurements/{measurement.MeasurementId}", new
             {
                 measurement,
                 triggeredAlarms

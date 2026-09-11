@@ -8,7 +8,7 @@ public static class DeviceEndpoints
 {
     public static void MapDeviceEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/devices").WithTags("Devices").RequireAuthorization();
+        var group = app.MapGroup("/devices").WithTags("Devices").RequireAuthorization();
 
         group.MapGet("/", async (ApplicationDbContext db) =>
             await db.Devices.Where(d => d.IsActive).OrderBy(d => d.DeviceName).ToListAsync());
@@ -29,7 +29,7 @@ public static class DeviceEndpoints
             db.Devices.Add(device);
             await db.SaveChangesAsync();
 
-            return Results.Created($"/api/devices/{device.DeviceId}", device);
+            return Results.Created($"/devices/{device.DeviceId}", device);
         });
 
         group.MapGet("/{id:int}/measurements", async (int id, DateTimeOffset? from, DateTimeOffset? to, ApplicationDbContext db) =>

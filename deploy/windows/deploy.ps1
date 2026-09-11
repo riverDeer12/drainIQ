@@ -36,7 +36,7 @@ param(
     [string]$PgSuperuser = "postgres",
     [Parameter(Mandatory)][string]$PgSuperPassword,
     [string]$PgAppDb = "drainiq",
-    [string]$PgBinPath = "C:\Program Files\PostgreSQL\16\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
+    [string]$PgBinPath = "C:\Program Files\PostgreSQL\18\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
 )
 
 $ErrorActionPreference = "Stop"

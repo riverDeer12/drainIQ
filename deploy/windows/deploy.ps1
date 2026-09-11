@@ -23,6 +23,18 @@ over the same folder to pick up new code (git pull + dotnet publish).
 
 $ErrorActionPreference = "Stop"
 
+# $ErrorActionPreference only affects PowerShell cmdlets, not the exit code
+# of native executables (dotnet.exe, git.exe, ...) - without this, a failed
+# `dotnet publish` would print its error and the script would carry on
+# regardless. Call external commands through here so failures actually stop.
+function Invoke-Checked {
+    param([Parameter(Mandatory)][ScriptBlock]$Command, [string]$ErrorMessage = "Command failed")
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage (exit code $LASTEXITCODE)"
+    }
+}
+
 # ===================== CONFIGURE THESE =====================
 $SiteName        = "YourExistingSiteName"   # `Get-Website | Select Name` to list existing sites
 $AppPoolName     = "drainIQApiPool"
@@ -55,7 +67,7 @@ $env:PGPASSWORD = $PgSuperPassword
 Write-Host "==> 1/6 Creating PostgreSQL database '$PgAppDb' (if missing)..."
 $dbExists = & $psqlExe -U $PgSuperuser -h localhost -tAc "SELECT 1 FROM pg_database WHERE datname='$PgAppDb'"
 if ($dbExists -ne "1") {
-    & $createdbExe -U $PgSuperuser -h localhost $PgAppDb
+    Invoke-Checked { & $createdbExe -U $PgSuperuser -h localhost $PgAppDb } "createdb failed"
     Write-Host "    Database '$PgAppDb' created."
 } else {
     Write-Host "    Database '$PgAppDb' already exists, skipping."
@@ -63,14 +75,14 @@ if ($dbExists -ne "1") {
 
 Write-Host "==> 2/6 Fetching source ($RepoUrl)..."
 if (Test-Path $SourcePath) {
-    git -C $SourcePath pull
+    Invoke-Checked { git -C $SourcePath pull } "git pull failed"
 } else {
-    git clone $RepoUrl $SourcePath
+    Invoke-Checked { git clone $RepoUrl $SourcePath } "git clone failed"
 }
 
 Write-Host "==> 3/6 Publishing the API (Release)..."
 New-Item -ItemType Directory -Force -Path $PublishPath | Out-Null
-dotnet publish $ProjectPath -c Release -o $PublishPath
+Invoke-Checked { dotnet publish $ProjectPath -c Release -o $PublishPath } "dotnet publish failed"
 
 Write-Host "==> 4/6 Writing connection string, JWT key and environment into web.config..."
 $connString = "Host=localhost;Port=5432;Database=$PgAppDb;Username=$PgSuperuser;Password=$PgSuperPassword"
@@ -122,7 +134,7 @@ if (-not (dotnet tool list -g | Select-String "dotnet-ef")) {
 Push-Location $ProjectPath
 try {
     $env:ConnectionStrings__DefaultConnection = $connString
-    dotnet ef database update
+    Invoke-Checked { dotnet ef database update } "dotnet ef database update failed"
 } finally {
     Pop-Location
 }

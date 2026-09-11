@@ -1,0 +1,18 @@
+name: Deploy to production
+
+# Runs on the self-hosted runner installed on the Windows Server itself
+# (see deploy/windows/deploy.ps1 for the prerequisites it assumes are
+# already on that machine). No inbound access to the server is needed -
+# the runner polls GitHub over an outbound connection.
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Deploy to IIS
+        shell: powershell
+        run: |
+          C:\src\drainIQ\deploy\windows\deploy.ps1 -PgSuperPassword "${{ secrets.PG_SUPER_PASSWORD }}"

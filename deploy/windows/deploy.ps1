@@ -4,7 +4,10 @@ existing site (so the existing index.html keeps serving at the domain
 root, and the API becomes reachable at http://<domain>/api/...).
 
 Run this in an elevated PowerShell session (Run as Administrator) on the
-Windows Server.
+Windows Server - either manually, or via the self-hosted GitHub Actions
+runner configured to run as an admin-capable account (see
+.github/workflows/deploy.yml, which calls this with -PgSuperPassword from
+a GitHub Actions secret).
 
 Prerequisites (not handled by this script - see the deploy chat notes):
   - PostgreSQL installed and running (GUI installer), with a known
@@ -15,11 +18,26 @@ Prerequisites (not handled by this script - see the deploy chat notes):
     `dotnet publish`.
   - IIS with the existing site already created.
 
-Safe to re-run: skips creating things that already exist, and re-publishes
-over the same folder to pick up new code (git pull + dotnet publish).
+Safe to re-run: skips creating things that already exist, re-publishes over
+the same folder to pick up new code (git pull + dotnet publish), and reuses
+the JWT signing key already in web.config from the previous deploy instead
+of generating a new one each time - a fresh key on every run would log
+every user out on every redeploy.
 #>
 
 #Requires -RunAsAdministrator
+
+param(
+    [string]$SiteName = "drainiq.eu",           # `Get-Website | Select Name` to list existing sites
+    [string]$AppPoolName = "drainIQApiPool",
+    [string]$AppName = "api",                    # API is reachable at http://yourdomain/api/...
+    [string]$RepoUrl = "https://github.com/riverDeer12/drainIQ.git",
+    [string]$SourcePath = "C:\src\drainIQ",      # where the repo is cloned/built, kept outside wwwroot
+    [string]$PgSuperuser = "postgres",
+    [Parameter(Mandatory)][string]$PgSuperPassword,
+    [string]$PgAppDb = "drainiq",
+    [string]$PgBinPath = "C:\Program Files\PostgreSQL\16\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -53,18 +71,6 @@ function Stop-AppPoolIfRunning {
         Start-Sleep -Seconds 2   # small safety margin past the reported Stopped state
     }
 }
-
-# ===================== CONFIGURE THESE =====================
-$SiteName        = "YourExistingSiteName"   # `Get-Website | Select Name` to list existing sites
-$AppPoolName     = "drainIQApiPool"
-$AppName         = "api"                    # API will be reachable at http://yourdomain/api/...
-$RepoUrl         = "https://github.com/riverDeer12/drainIQ.git"
-$SourcePath      = "C:\src\drainIQ"         # where the repo is cloned/built, kept outside wwwroot
-$PgSuperuser     = "postgres"
-$PgSuperPassword = "PUT_YOUR_POSTGRES_SUPERUSER_PASSWORD_HERE"
-$PgAppDb         = "drainiq"
-$PgBinPath       = "C:\Program Files\PostgreSQL\16\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
-# =============================================================
 
 Import-Module WebAdministration
 
@@ -101,17 +107,41 @@ if (Test-Path $SourcePath) {
 
 Write-Host "==> 3/6 Publishing the API (Release)..."
 Stop-AppPoolIfRunning -Name $AppPoolName
+
+# `dotnet publish` overwrites web.config wholesale, so grab the JWT key it
+# already has (if any) before that happens - reusing it, rather than
+# generating a new one every deploy, which would invalidate every issued
+# token (log everyone out) on every redeploy.
+$webConfigPath = Join-Path $PublishPath "web.config"
+$ExistingJwtKey = $null
+if (Test-Path $webConfigPath) {
+    try {
+        [xml]$oldWebConfig = Get-Content $webConfigPath
+        $existingNode = $oldWebConfig.SelectSingleNode("//environmentVariable[@name='Jwt__Key']")
+        if ($existingNode) {
+            $ExistingJwtKey = $existingNode.GetAttribute("value")
+        }
+    } catch {
+        Write-Host "    Could not read the previous web.config, will generate a new JWT key."
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $PublishPath | Out-Null
 Invoke-Checked { dotnet publish $ProjectPath -c Release -o $PublishPath } "dotnet publish failed"
 
 Write-Host "==> 4/6 Writing connection string, JWT key and environment into web.config..."
 $connString = "Host=localhost;Port=5432;Database=$PgAppDb;Username=$PgSuperuser;Password=$PgSuperPassword"
 
-$bytes = New-Object byte[] 32
-(New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes($bytes)
-$JwtKey = [Convert]::ToBase64String($bytes)
+if ($ExistingJwtKey) {
+    $JwtKey = $ExistingJwtKey
+    Write-Host "    Reusing the JWT signing key from the previous deploy."
+} else {
+    $bytes = New-Object byte[] 32
+    (New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes($bytes)
+    $JwtKey = [Convert]::ToBase64String($bytes)
+    Write-Host "    No existing JWT key found - generated a new one (expected on the first-ever deploy)."
+}
 
-$webConfigPath = Join-Path $PublishPath "web.config"
 [xml]$webConfig = Get-Content $webConfigPath
 $aspNetCoreNode = $webConfig.SelectSingleNode("//aspNetCore")
 if (-not $aspNetCoreNode) {
@@ -131,9 +161,7 @@ Add-EnvVar $webConfig $envVarsNode "Jwt__Key" $JwtKey
 $aspNetCoreNode.AppendChild($envVarsNode) | Out-Null
 $webConfig.Save($webConfigPath)
 
-Write-Host "    JWT signing key generated for this deploy:"
-Write-Host "    $JwtKey"
-Write-Host "    (write this down - tokens issued now won't validate later if you redeploy with a different key)"
+Write-Host "    Current JWT signing key: $JwtKey"
 
 Write-Host "==> 5/6 Configuring IIS application pool and application..."
 if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {

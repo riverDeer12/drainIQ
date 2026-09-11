@@ -13,6 +13,16 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
+      # deploy.ps1 itself does a git pull (step 2/6), but that happens only
+      # AFTER it has already started running - so a fix to the script, or to
+      # a default like $PgBinPath, wouldn't take effect until the run after
+      # the one that pulls it. Pull first so the script that's about to run
+      # is always the one from this exact commit.
+      - name: Pull latest source
+        shell: powershell
+        run: |
+          git -C C:\src\drainIQ pull
+
       - name: Deploy to IIS
         shell: powershell
         run: |

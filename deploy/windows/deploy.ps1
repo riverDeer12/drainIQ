@@ -36,7 +36,8 @@ param(
     [string]$PgSuperuser = "postgres",
     [Parameter(Mandatory)][string]$PgSuperPassword,
     [string]$PgAppDb = "drainiq",
-    [string]$PgBinPath = "C:\Program Files\PostgreSQL\18\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
+    [string]$PgBinPath = "C:\Program Files\PostgreSQL\18\bin",   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
+    [string]$AspNetCoreEnvironment = "Production"   # "Development" also exposes /scalar/v1 and /openapi/v1.json publicly
 )
 
 $ErrorActionPreference = "Stop"
@@ -155,7 +156,7 @@ function Add-EnvVar($doc, $parent, $name, $value) {
     $node.SetAttribute("value", $value)
     $parent.AppendChild($node) | Out-Null
 }
-Add-EnvVar $webConfig $envVarsNode "ASPNETCORE_ENVIRONMENT" "Production"
+Add-EnvVar $webConfig $envVarsNode "ASPNETCORE_ENVIRONMENT" $AspNetCoreEnvironment
 Add-EnvVar $webConfig $envVarsNode "ConnectionStrings__DefaultConnection" $connString
 Add-EnvVar $webConfig $envVarsNode "Jwt__Key" $JwtKey
 $aspNetCoreNode.AppendChild($envVarsNode) | Out-Null
@@ -197,9 +198,13 @@ if ((Get-WebAppPoolState -Name $AppPoolName).Value -ne "Started") {
 
 Write-Host ""
 Write-Host "Done. API is live under: http://<server-or-domain>/$AppName/..."
-Write-Host "ASPNETCORE_ENVIRONMENT is 'Production', so /scalar/v1 and /openapi/v1.json are NOT mapped there on purpose"
-Write-Host "(they're dev-only in Program.cs). Change that environment variable in web.config to 'Development' if you"
-Write-Host "want Scalar reachable there too, e.g. for demoing to the city - just be aware it also re-enables the"
-Write-Host "auto-seeder in DbSeeder.cs, which no-ops once any device row exists, so it's harmless after the first run."
+if ($AspNetCoreEnvironment -eq "Development") {
+    Write-Host "ASPNETCORE_ENVIRONMENT is 'Development', so /scalar/v1 and /openapi/v1.json ARE publicly reachable -"
+    Write-Host "this also re-enables the auto-seeder in DbSeeder.cs, which no-ops once any device row exists, so it's"
+    Write-Host "harmless after the first run."
+} else {
+    Write-Host "ASPNETCORE_ENVIRONMENT is 'Production', so /scalar/v1 and /openapi/v1.json are NOT mapped (dev-only in"
+    Write-Host "Program.cs). Pass -AspNetCoreEnvironment Development to expose them."
+}
 Write-Host ""
 Write-Host "To load the demo/test dataset, run seed-demo-data.ps1 next."

@@ -25,5 +25,9 @@ jobs:
 
       - name: Deploy to IIS
         shell: powershell
+        # -AspNetCoreEnvironment Development is a deliberate choice here (not
+        # the safe default) so /scalar/v1 is browsable on the live site for
+        # demoing to the city. It also re-enables DbSeeder.cs's auto-seeder,
+        # which just no-ops since a device row already exists.
         run: |
-          C:\src\drainIQ\deploy\windows\deploy.ps1 -PgSuperPassword "${{ secrets.PG_SUPER_PASSWORD }}"
+          C:\src\drainIQ\deploy\windows\deploy.ps1 -PgSuperPassword "${{ secrets.PG_SUPER_PASSWORD }}" -AspNetCoreEnvironment Development

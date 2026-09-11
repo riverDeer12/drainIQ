@@ -32,9 +32,16 @@ $SourcePath      = "C:\src\drainIQ"         # where the repo is cloned/built, ke
 $PgSuperuser     = "postgres"
 $PgSuperPassword = "PUT_YOUR_POSTGRES_SUPERUSER_PASSWORD_HERE"
 $PgAppDb         = "drainiq"
+$PgBinPath       = "C:\Program Files\PostgreSQL\16\bin"   # adjust version - `Get-ChildItem "C:\Program Files\PostgreSQL"`
 # =============================================================
 
 Import-Module WebAdministration
+
+$psqlExe = Join-Path $PgBinPath "psql.exe"
+$createdbExe = Join-Path $PgBinPath "createdb.exe"
+if (-not (Test-Path $psqlExe)) {
+    throw "psql.exe not found at $psqlExe - fix `$PgBinPath above to match your PostgreSQL install."
+}
 
 $siteIisPath = "IIS:\Sites\$SiteName"
 if (-not (Test-Path $siteIisPath)) {
@@ -46,9 +53,9 @@ $ProjectPath = Join-Path $SourcePath "drainIQ"
 $env:PGPASSWORD = $PgSuperPassword
 
 Write-Host "==> 1/6 Creating PostgreSQL database '$PgAppDb' (if missing)..."
-$dbExists = & psql -U $PgSuperuser -h localhost -tAc "SELECT 1 FROM pg_database WHERE datname='$PgAppDb'"
+$dbExists = & $psqlExe -U $PgSuperuser -h localhost -tAc "SELECT 1 FROM pg_database WHERE datname='$PgAppDb'"
 if ($dbExists -ne "1") {
-    & createdb -U $PgSuperuser -h localhost $PgAppDb
+    & $createdbExe -U $PgSuperuser -h localhost $PgAppDb
     Write-Host "    Database '$PgAppDb' created."
 } else {
     Write-Host "    Database '$PgAppDb' already exists, skipping."

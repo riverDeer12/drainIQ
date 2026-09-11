@@ -35,6 +35,25 @@ function Invoke-Checked {
     }
 }
 
+# In-process hosting loads drainIQ.dll straight into the IIS worker process,
+# so `dotnet publish` can't overwrite it on a redeploy while the app pool is
+# running - it stays locked until the pool actually stops.
+function Stop-AppPoolIfRunning {
+    param([string]$Name)
+    if (-not (Test-Path "IIS:\AppPools\$Name")) {
+        return
+    }
+    if ((Get-WebAppPoolState -Name $Name).Value -ne "Stopped") {
+        Write-Host "    Stopping app pool '$Name' to release the lock on drainIQ.dll..."
+        Stop-WebAppPool -Name $Name
+        $deadline = (Get-Date).AddSeconds(15)
+        while ((Get-WebAppPoolState -Name $Name).Value -ne "Stopped" -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Milliseconds 500
+        }
+        Start-Sleep -Seconds 2   # small safety margin past the reported Stopped state
+    }
+}
+
 # ===================== CONFIGURE THESE =====================
 $SiteName        = "YourExistingSiteName"   # `Get-Website | Select Name` to list existing sites
 $AppPoolName     = "drainIQApiPool"
@@ -81,6 +100,7 @@ if (Test-Path $SourcePath) {
 }
 
 Write-Host "==> 3/6 Publishing the API (Release)..."
+Stop-AppPoolIfRunning -Name $AppPoolName
 New-Item -ItemType Directory -Force -Path $PublishPath | Out-Null
 Invoke-Checked { dotnet publish $ProjectPath -c Release -o $PublishPath } "dotnet publish failed"
 
@@ -143,10 +163,12 @@ try {
     Pop-Location
 }
 
-Restart-WebAppPool -Name $AppPoolName
+if ((Get-WebAppPoolState -Name $AppPoolName).Value -ne "Started") {
+    Start-WebAppPool -Name $AppPoolName
+}
 
 Write-Host ""
-Write-Host "Done. API is live under: http://<server-or-domain>/$AppName/api/..."
+Write-Host "Done. API is live under: http://<server-or-domain>/$AppName/..."
 Write-Host "ASPNETCORE_ENVIRONMENT is 'Production', so /scalar/v1 and /openapi/v1.json are NOT mapped there on purpose"
 Write-Host "(they're dev-only in Program.cs). Change that environment variable in web.config to 'Development' if you"
 Write-Host "want Scalar reachable there too, e.g. for demoing to the city - just be aware it also re-enables the"

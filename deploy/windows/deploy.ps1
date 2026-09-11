@@ -133,7 +133,11 @@ if (-not (dotnet tool list -g | Select-String "dotnet-ef")) {
 }
 Push-Location $ProjectPath
 try {
+    # Program.cs throws at startup if Jwt:Key is missing, regardless of
+    # whether this particular operation needs it - so `dotnet ef` needs it
+    # set too, even though a migration update never touches JWT code.
     $env:ConnectionStrings__DefaultConnection = $connString
+    $env:Jwt__Key = $JwtKey
     Invoke-Checked { dotnet ef database update } "dotnet ef database update failed"
 } finally {
     Pop-Location

@@ -34,11 +34,14 @@ $PgSuperPassword = "PUT_YOUR_POSTGRES_SUPERUSER_PASSWORD_HERE"
 $PgAppDb         = "drainiq"
 # =============================================================
 
-$site = Get-Website -Name $SiteName -ErrorAction SilentlyContinue
-if (-not $site) {
+Import-Module WebAdministration
+
+$siteIisPath = "IIS:\Sites\$SiteName"
+if (-not (Test-Path $siteIisPath)) {
     throw "Site '$SiteName' not found. Run 'Get-Website' to list existing sites and fix `$SiteName above."
 }
-$PublishPath = Join-Path $site.PhysicalPath $AppName
+$SitePhysicalPath = (Get-Item $siteIisPath).PhysicalPath
+$PublishPath = Join-Path $SitePhysicalPath $AppName
 $ProjectPath = Join-Path $SourcePath "drainIQ"
 $env:PGPASSWORD = $PgSuperPassword
 
@@ -94,7 +97,6 @@ Write-Host "    $JwtKey"
 Write-Host "    (write this down - tokens issued now won't validate later if you redeploy with a different key)"
 
 Write-Host "==> 5/6 Configuring IIS application pool and application..."
-Import-Module WebAdministration
 if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
     New-WebAppPool -Name $AppPoolName | Out-Null
 }

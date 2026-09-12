@@ -53,6 +53,10 @@ Content-Type: application/json
   "description": "Updated description"
 }
 
+### Delete (deactivate) a device (protected) - soft delete, sets isActive false
+DELETE {{drainIQ_HostAddress}}/devices/1
+Authorization: Bearer {{login.response.body.$.token}}
+
 ### Send a measurement (device ingestion endpoint - no user auth, see code comment)
 POST {{drainIQ_HostAddress}}/measurements
 Content-Type: application/json

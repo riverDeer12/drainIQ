@@ -50,6 +50,25 @@ public static class DeviceEndpoints
             return Results.Ok(device);
         });
 
+        // Soft delete: devices.device_id is referenced by measurements with ON DELETE
+        // RESTRICT specifically so historical readings/alarms survive a device being
+        // decommissioned. "Deleting" a device just deactivates it - GET /devices already
+        // filters to IsActive, so it disappears from listings but stays reachable by id
+        // and keeps all its measurement/alarm history intact.
+        group.MapDelete("/{id:int}", async (int id, ApplicationDbContext db) =>
+        {
+            var device = await db.Devices.FindAsync(id);
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            device.IsActive = false;
+            await db.SaveChangesAsync();
+
+            return Results.Ok(device);
+        });
+
         group.MapGet("/{id:int}/measurements", async (int id, DateTimeOffset? from, DateTimeOffset? to, ApplicationDbContext db) =>
         {
             var since = from ?? DateTimeOffset.UtcNow.AddHours(-24);

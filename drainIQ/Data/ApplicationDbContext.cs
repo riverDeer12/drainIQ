@@ -28,7 +28,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(d => d.Description).HasColumnName("description");
             entity.Property(d => d.IsActive).HasColumnName("is_active").HasDefaultValue(true);
             entity.Property(d => d.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
-            entity.Property(d => d.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
+            // trg_devices_updated_at sets this on every UPDATE too, not just insert - tell EF
+            // to re-read it back after both so responses don't return a stale value.
+            entity.Property(d => d.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAddOrUpdate();
         });
 
         builder.Entity<Measurement>(entity =>
@@ -81,7 +83,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(r => r.Comparator).HasColumnName("comparator").HasMaxLength(2).IsRequired();
             entity.Property(r => r.IsActive).HasColumnName("is_active").HasDefaultValue(true);
             entity.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
-            entity.Property(r => r.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()");
+            // trg_alarm_rules_updated_at sets this on every UPDATE too, not just insert.
+            entity.Property(r => r.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("now()").ValueGeneratedOnAddOrUpdate();
 
             entity.HasOne(r => r.Device)
                 .WithMany(d => d.AlarmRules)

@@ -32,6 +32,24 @@ public static class DeviceEndpoints
             return Results.Created($"/devices/{device.DeviceId}", device);
         });
 
+        group.MapPut("/{id:int}", async (int id, CreateDeviceRequest request, ApplicationDbContext db) =>
+        {
+            var device = await db.Devices.FindAsync(id);
+            if (device is null)
+            {
+                return Results.NotFound();
+            }
+
+            device.DeviceName = request.DeviceName;
+            device.Lat = request.Lat;
+            device.Long = request.Long;
+            device.Description = request.Description;
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(device);
+        });
+
         group.MapGet("/{id:int}/measurements", async (int id, DateTimeOffset? from, DateTimeOffset? to, ApplicationDbContext db) =>
         {
             var since = from ?? DateTimeOffset.UtcNow.AddHours(-24);

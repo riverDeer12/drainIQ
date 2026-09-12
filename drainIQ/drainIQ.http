@@ -41,6 +41,18 @@ Content-Type: application/json
   "description": "Test sensor"
 }
 
+### Update a device (protected)
+PUT {{drainIQ_HostAddress}}/devices/1
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "deviceName": "Manhole - Korzo 1 (renamed)",
+  "lat": 45.3271,
+  "long": 14.4422,
+  "description": "Updated description"
+}
+
 ### Send a measurement (device ingestion endpoint - no user auth, see code comment)
 POST {{drainIQ_HostAddress}}/measurements
 Content-Type: application/json

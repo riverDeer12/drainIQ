@@ -18,6 +18,11 @@ public static class MeasurementEndpoints
         // then immediately check it against that device's active alarm rules.
         group.MapPost("/", async (CreateMeasurementRequest request, ApplicationDbContext db, AlarmEvaluationService alarmEvaluation) =>
         {
+            if (request.BatteryLevelPct is < 0 or > 100)
+            {
+                return Results.BadRequest("batteryLevelPct must be between 0 and 100.");
+            }
+
             var deviceExists = await db.Devices.AnyAsync(d => d.DeviceId == request.DeviceId && d.IsActive);
             if (!deviceExists)
             {
@@ -28,7 +33,8 @@ public static class MeasurementEndpoints
             {
                 DeviceId = request.DeviceId,
                 SentAt = request.SentAt ?? DateTimeOffset.UtcNow,
-                WaterLevelFromTopCm = request.WaterLevelFromTopCm
+                WaterLevelFromTopCm = request.WaterLevelFromTopCm,
+                BatteryLevelPct = request.BatteryLevelPct
             };
 
             db.Measurements.Add(measurement);
@@ -45,4 +51,4 @@ public static class MeasurementEndpoints
     }
 }
 
-public record CreateMeasurementRequest(int DeviceId, decimal WaterLevelFromTopCm, DateTimeOffset? SentAt);
+public record CreateMeasurementRequest(int DeviceId, decimal WaterLevelFromTopCm, DateTimeOffset? SentAt, int? BatteryLevelPct = null);

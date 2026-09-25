@@ -35,11 +35,14 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         builder.Entity<Measurement>(entity =>
         {
-            entity.ToTable("measurements");
+            entity.ToTable("measurements", tb =>
+                tb.HasCheckConstraint("CK_measurements_battery_level_pct", "battery_level_pct IS NULL OR battery_level_pct BETWEEN 0 AND 100"));
+
             entity.Property(m => m.MeasurementId).HasColumnName("measurement_id");
             entity.Property(m => m.DeviceId).HasColumnName("device_id");
             entity.Property(m => m.SentAt).HasColumnName("sent_at");
             entity.Property(m => m.WaterLevelFromTopCm).HasColumnName("water_level_from_top_cm").HasColumnType("decimal(6,2)");
+            entity.Property(m => m.BatteryLevelPct).HasColumnName("battery_level_pct");
             entity.Property(m => m.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
 
             entity.HasOne(m => m.Device)

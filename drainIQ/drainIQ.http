@@ -63,7 +63,8 @@ Content-Type: application/json
 
 {
   "deviceId": 1,
-  "waterLevelFromTopCm": 42.5
+  "waterLevelFromTopCm": 42.5,
+  "batteryLevelPct": 78
 }
 
 ### Get measurements for a device (protected)

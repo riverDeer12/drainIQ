@@ -20,3 +20,11 @@ public static class AlarmComparators
 {
     public static readonly string[] Allowed = ["<", "<=", ">", ">=", "="];
 }
+
+public static class AlarmTypes
+{
+    public const string WaterLevel = "water_level";
+    public const string LowBattery = "low_battery";
+
+    public static readonly string[] All = [WaterLevel, LowBattery];
+}

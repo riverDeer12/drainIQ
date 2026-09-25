@@ -28,6 +28,11 @@ public static class AlarmEndpoints
                 return Results.BadRequest($"Comparator must be one of: {string.Join(", ", AlarmComparators.Allowed)}");
             }
 
+            if (!AlarmTypes.All.Contains(request.AlarmType))
+            {
+                return Results.BadRequest($"AlarmType must be one of: {string.Join(", ", AlarmTypes.All)}");
+            }
+
             var deviceExists = await db.Devices.AnyAsync(d => d.DeviceId == request.DeviceId && d.IsActive);
             if (!deviceExists)
             {

@@ -20,7 +20,11 @@ public class AlarmEvaluationService(ApplicationDbContext db)
 
         foreach (var rule in activeRules)
         {
-            if (!IsSatisfied(rule, measurement.WaterLevelFromTopCm))
+            var value = GetMetricValue(rule, measurement);
+
+            // e.g. a low_battery rule on a measurement that didn't report battery -
+            // nothing to compare against, so this rule just doesn't fire this time.
+            if (value is null || !IsSatisfied(rule, value.Value))
             {
                 continue;
             }
@@ -42,6 +46,13 @@ public class AlarmEvaluationService(ApplicationDbContext db)
 
         return triggered;
     }
+
+    private static decimal? GetMetricValue(AlarmRule rule, Measurement measurement) => rule.AlarmType switch
+    {
+        AlarmTypes.WaterLevel => measurement.WaterLevelFromTopCm,
+        AlarmTypes.LowBattery => measurement.BatteryLevelPct,
+        _ => null
+    };
 
     private static bool IsSatisfied(AlarmRule rule, decimal value) => rule.Comparator switch
     {

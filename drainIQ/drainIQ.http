@@ -84,6 +84,19 @@ Content-Type: application/json
   "comparator": "<="
 }
 
+### Create a low battery alarm rule (protected)
+POST {{drainIQ_HostAddress}}/alarm-rules
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "deviceId": 1,
+  "alarmName": "Low battery",
+  "alarmType": "low_battery",
+  "thresholdValue": 20,
+  "comparator": "<="
+}
+
 ### List alarms (protected)
 GET {{drainIQ_HostAddress}}/alarms
 Authorization: Bearer {{login.response.body.$.token}}

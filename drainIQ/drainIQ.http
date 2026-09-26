@@ -97,6 +97,20 @@ Content-Type: application/json
   "comparator": "<="
 }
 
+### Create a device-offline alarm rule (protected) - thresholdValue is minutes since
+### the device's last measurement, checked periodically by DeviceOfflineCheckService
+POST {{drainIQ_HostAddress}}/alarm-rules
+Authorization: Bearer {{login.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "deviceId": 1,
+  "alarmName": "Device offline",
+  "alarmType": "device_offline",
+  "thresholdValue": 120,
+  "comparator": ">="
+}
+
 ### List alarms (protected)
 GET {{drainIQ_HostAddress}}/alarms
 Authorization: Bearer {{login.response.body.$.token}}

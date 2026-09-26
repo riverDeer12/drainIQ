@@ -31,6 +31,7 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<AlarmEvaluationService>();
+builder.Services.AddHostedService<DeviceOfflineCheckService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 

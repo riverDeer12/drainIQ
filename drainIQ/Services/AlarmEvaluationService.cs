@@ -22,9 +22,11 @@ public class AlarmEvaluationService(ApplicationDbContext db)
         {
             var value = GetMetricValue(rule, measurement);
 
-            // e.g. a low_battery rule on a measurement that didn't report battery -
-            // nothing to compare against, so this rule just doesn't fire this time.
-            if (value is null || !IsSatisfied(rule, value.Value))
+            // e.g. a low_battery rule on a measurement that didn't report battery, or a
+            // device_offline rule (which GetMetricValue never resolves here - it's only
+            // ever evaluated periodically by DeviceOfflineCheckService, since "no data
+            // arrived" can't be caught by a handler that only runs when data DOES arrive).
+            if (value is null || !AlarmComparators.IsSatisfied(rule.Comparator, value.Value, rule.ThresholdValue))
             {
                 continue;
             }
@@ -39,7 +41,22 @@ public class AlarmEvaluationService(ApplicationDbContext db)
             triggered.Add(instance);
         }
 
-        if (triggered.Count > 0)
+        // A measurement just arrived, so the device clearly isn't offline anymore -
+        // auto-resolve any standing device_offline alarms for it rather than leaving
+        // them open until someone notices and resolves them by hand.
+        var recoveredOfflineAlarms = await db.AlarmInstances
+            .Where(a => a.Rule.DeviceId == measurement.DeviceId
+                && a.Rule.AlarmType == AlarmTypes.DeviceOffline
+                && a.Status != AlarmStatus.Resolved)
+            .ToListAsync();
+
+        foreach (var alarm in recoveredOfflineAlarms)
+        {
+            alarm.Status = AlarmStatus.Resolved;
+            alarm.ResolvedAt = DateTimeOffset.UtcNow;
+        }
+
+        if (triggered.Count > 0 || recoveredOfflineAlarms.Count > 0)
         {
             await db.SaveChangesAsync();
         }
@@ -52,15 +69,5 @@ public class AlarmEvaluationService(ApplicationDbContext db)
         AlarmTypes.WaterLevel => measurement.WaterLevelFromTopCm,
         AlarmTypes.LowBattery => measurement.BatteryLevelPct,
         _ => null
-    };
-
-    private static bool IsSatisfied(AlarmRule rule, decimal value) => rule.Comparator switch
-    {
-        "<" => value < rule.ThresholdValue,
-        "<=" => value <= rule.ThresholdValue,
-        ">" => value > rule.ThresholdValue,
-        ">=" => value >= rule.ThresholdValue,
-        "=" => value == rule.ThresholdValue,
-        _ => false
     };
 }

@@ -77,7 +77,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.ToTable("alarm_rules", tb =>
             {
                 tb.HasCheckConstraint("CK_alarm_rules_comparator", "comparator IN ('<', '<=', '>', '>=', '=')");
-                tb.HasCheckConstraint("CK_alarm_rules_alarm_type", "alarm_type IN ('water_level', 'low_battery')");
+                tb.HasCheckConstraint("CK_alarm_rules_alarm_type", "alarm_type IN ('water_level', 'low_battery', 'device_offline')");
             });
 
             entity.HasKey(r => r.RuleId);
